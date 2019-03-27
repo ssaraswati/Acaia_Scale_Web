@@ -1,0 +1,26 @@
+<html lang="en">
+	<head>
+  		<title>Acaia Scale Bluetooth</title>
+		<script src="scale.js"></script>
+		<script src="demo.js"></script>
+		<link rel="stylesheet" media="screen" href="https://fontlibrary.org/face/segment7" type="text/css"/>
+		<link rel="stylesheet" href="demo.css"></style>
+  	</head>
+  	<body>
+		<div class="background">
+			<h1 class="title">Acaia Scale Bluetooth</h1>
+			<div class="scale-body">
+				<div class="panel">
+					<div onclick="window.sendTimer()" id="power" class="scale-button">P</div>
+					<div id="timer" class="scale-display">0.00.</div>
+					<div id="weight" class="scale-display">0.0</div>
+					<div onclick="window.sendTare()" id="tare" class="scale-button">T</div>
+				</div>
+			</div>
+			<div class="footer">
+				<div onclick="window.discover()" id="connect-button" class='scale-button'>Connect Scale</div>
+				<div id="mode-display">Mode: </div>
+			</div>
+		</div>
+	</body>
+</html>

@@ -1,5 +1,4 @@
 // based on https://github.com/bpowers/btscale
-
 let SCALE_SERVICE_UUID = '00001820-0000-1000-8000-00805f9b34fb';
 let SCALE_CHARACTERISTIC_UUID = '00002a80-0000-1000-8000-00805f9b34fb';
 let HEADER1 = 0xef;
@@ -77,6 +76,9 @@ var Message = (function () {
             }
 
             this.value = value;
+        } else if (type === 8) {
+            this.value = payload[0];
+
         }
     }
 
@@ -194,10 +196,15 @@ function encodeTare() {
     return encode(4, payload);
 }
 
+function encodeTimer(value) {
+    var payload = [0,value];
+    return encode(13, payload);
+}
+
 
 var Scale = (function () {
 
-    function Scale(device) {
+    function Scale(device, customCallback) {
 
         this.connected = false;
         this.service = null;
@@ -206,6 +213,8 @@ var Scale = (function () {
         this.device = device;
         this.name = this.device.name;
         this.queue = null;
+        this.timerStatus = 0;
+        this.customCallback = customCallback;
         console.log('created scale for ' + this.device.address + ' (' + this.device.name + ')');
         this.connect();
     }
@@ -237,16 +246,47 @@ var Scale = (function () {
 	        if (!msg) {
 	            console.log('characteristic value update, but no message');
 	            return;
-	        }
+            }
 
 	        if (msg.type === 5) {
 	            _this.weight = msg.value;
-	            console.log('weight: ' + msg.value);
-	        }
-	        else {
+                _this.customCallback ? _this.customCallback('weight', msg.value) : console.log('weight', msg.value);
+	        } else if (msg.type === 11) {
+
+            } else if(msg.type === 8) {
+                var action;
+                switch (msg.value) {
+                    case 0:
+                        action = 'tare';
+                        break;
+                    case 4:
+                        action = 'timer_mode';
+                        break;
+                    case 3: 
+                        action = 'brew_mode';
+                        break;
+                    case 2:
+                        action = 'weight_mode';
+                        break;
+                    case 8:
+                        action = 'start_timer';
+                        break;
+                    case 10:
+                        action = 'stop_timer';
+                        break;
+                    case 9:
+                        action = 'reset_timer';
+                        break;
+                    default:
+                        action = 'default';
+                        break;
+
+                }
+                _this.customCallback ? _this.customCallback('action', action) : console.log('action', action);
+            } else {
 	            console.log('non-weight response');
 	            console.log(msg);
-	        }
+	        } 
 	    });
 
         this.device.gatt.connect()
@@ -320,6 +360,7 @@ var Scale = (function () {
         console.log('scale ready');
         this.connected = true;
         this.ident();
+        this.customCallback('connected');
         setInterval(this.heartbeat.bind(this), 5000);
         //setInterval(this.tare.bind(this), 5000);
     };
@@ -362,15 +403,46 @@ var Scale = (function () {
     };
 
     Scale.prototype.tare = function () {
-
         if (!this.connected) {
             return false;
         }
-
         this.characteristic.writeValue(encodeTare())
         .then(function () {
         }, function (err) {
             console.log('write tare failed: ' + err);
+        });
+
+        return true;
+    };
+
+    Scale.prototype.timer = function () {
+        var _this = this;
+        if (!this.connected) {
+            return false;
+        }
+        this.characteristic.writeValue(encodeTimer(_this.timerStatus))
+        .then(function () {
+            var value;
+            switch (_this.timerStatus) {
+                case 0:
+                    value = 'start_timer';
+                    _this.timerStatus = 2;
+                    break;
+                case 1:
+                    value = 'reset_timer';
+                    _this.timerStatus = 0;
+                    break;
+                case 2:
+                    value = 'stop_timer';
+                    _this.timerStatus = 1;
+                    break;
+                default:
+                    value = 'reset_timer';
+                    _this.timerStatus = 0;
+            }
+            _this.customCallback('action', value);
+        }, function (err) {
+            console.log('write timer failed: ' + err);
         });
 
         return true;
@@ -383,11 +455,12 @@ var Scale = (function () {
 var bluetooth = navigator.bluetooth;
 var ScaleFinder = (function () {
 
-    function ScaleFinder() {
+    function ScaleFinder(customCallback = undefined) {
         this.ready = false;
         this.devices = {};
         this.scales = [];
         this.failed = false;
+        this.customCallback = customCallback;
         console.log('new ScaleFinder');
     }
 
@@ -397,9 +470,10 @@ var ScaleFinder = (function () {
             console.log('WARN: device added that is already known ' + device.address);
             return;
         }
-
-        var scale = new Scale(device);
+        var scale = new Scale(device, this.customCallback);
         this.devices[device.address] = scale;
+        this.tare = scale.tare.bind(scale);
+        this.timer = scale.timer.bind(scale);
         this.scales.push(scale);
     };
 
