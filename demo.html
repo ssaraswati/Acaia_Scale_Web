@@ -1,5 +1,6 @@
 <html lang="en">
 	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
   		<title>Acaia Scale Bluetooth</title>
 		<script src="scale.js"></script>
 		<script src="demo.js"></script>
@@ -11,14 +12,14 @@
 			<h1 class="title">Acaia Scale Bluetooth</h1>
 			<div class="scale-body">
 				<div class="panel">
-					<div onclick="window.sendTimer()" id="power" class="scale-button">P</div>
+					<div id="power" class="scale-button">P</div>
 					<div id="timer" class="scale-display">0.00.</div>
 					<div id="weight" class="scale-display">0.0</div>
-					<div onclick="window.sendTare()" id="tare" class="scale-button">T</div>
+					<div id="tare" class="scale-button">T</div>
 				</div>
 			</div>
 			<div class="footer">
-				<div onclick="window.discover()" id="connect-button" class='scale-button'>Connect Scale</div>
+				<div id="connect-button" class='scale-button'>Connect Scale</div>
 				<div id="mode-display">Mode: </div>
 			</div>
 		</div>
