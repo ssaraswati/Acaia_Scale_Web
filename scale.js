@@ -270,12 +270,15 @@ var Scale = (function () {
                         break;
                     case 8:
                         action = 'start_timer';
+                        _this.timerStatus = 2;
                         break;
                     case 10:
                         action = 'stop_timer';
+                        _this.timerStatus = 1;
                         break;
                     case 9:
                         action = 'reset_timer';
+                        _this.timerStatus = 0;
                         break;
                     default:
                         action = 'default';
