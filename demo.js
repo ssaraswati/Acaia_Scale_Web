@@ -107,17 +107,14 @@
 
     window.onload=function(){
         document.getElementById("power").addEventListener("click", function(event){
-            event.preventDefault()
             sendTimer();
         });
     
         document.getElementById("tare").addEventListener("click", function(event){
-            event.preventDefault()
             sendTare();
         });
     
         document.getElementById("connect-button").addEventListener("click", function(event){
-            event.preventDefault()
             discover();
         });
     }
