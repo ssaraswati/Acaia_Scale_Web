@@ -52,8 +52,8 @@
         weightDisplay.innerText = value;
         if (isTimerActive) {
             weightData[weightData.length - 1].push({
-                weight: value,
                 time: centisecondCount / 100,
+                weight: value,
             });
             currentWeight = value;
         }
@@ -72,7 +72,7 @@
         timerData = setInterval(function () {
             centisecondCount += 1;
         }, 10);
-        weightData.push([{ weight: currentWeight, time: 0 }]);
+        weightData.push([{ time: 0, weight: currentWeight }]);
         lastWeight = currentWeight;
         isTimerActive = true;
         var modeDisplay = document.getElementById('mode-display')
