@@ -1,3 +1,9 @@
+@font-face {
+    font-family: 'Segment7Standard';
+    src: url('DSEG7.woff') format('woff'), /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
+     url('DSEG7.ttf') format('truetype'); /* Chrome 4+, Firefox 3.5, Opera 10+, Safari 3—5 */
+}  
+  
 html {
     font-size: 1vw;
 }
@@ -33,7 +39,10 @@ button {
     border-radius: 4vw;
     box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(1, 1, 1, 0.19);
     display: flex;
-    align-items: flex-end;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    padding: 32px 32px 0 32px;
 }
 
 .panel {
@@ -62,6 +71,29 @@ button {
     font-size: 4rem;
 }
 
+.list-element {
+    display: flex;
+    color: gray;
+    font-family: sans-serif;
+    margin-bottom: 8px;
+}
+
+.list-button {
+    border-width: 1px;
+    border-style: solid;
+    padding: 12px;
+    border-radius: 8px;
+    margin-left: 16px;
+    color: gray;
+    font-family: sans-serif;
+    cursor: pointer;
+}
+
+.list-button:hover {
+     border-color: darkgray;
+     color: darkgray;
+}
+
 
 #mode-display {
     color: whitesmoke;
@@ -78,6 +110,24 @@ button {
     border-style: solid;
     border-color: gray;
     border-radius: 20px;
+}
+
+#flowrate {
+    color: white;
+    text-shadow: 2px 2px 4px #000000;
+    font-family: 'Segment7Standard', sans-serif;
+    font-size: 2rem;
+}
+
+.data-list {
+    min-width: 200px;
+    max-height: 300px;
+    overflow-y: auto;
+    border-width: 1px;
+    border-style: solid;
+    border-color: gray;
+    border-radius: 12px;
+    padding: 12px;
 }
 
 #connect-button:hover {
