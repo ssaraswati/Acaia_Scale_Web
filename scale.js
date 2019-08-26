@@ -487,7 +487,7 @@ var ScaleFinder = (function () {
             return;
         }
 
-        bluetooth.requestDevice(/* {filters: [{services: [SCALE_SERVICE_UUID]}]} */)
+        bluetooth.requestDevice( { /*filters: [{services: [SCALE_SERVICE_UUID]}]*/ acceptAllDevices: true })
         .then(function (device) {
             _this.deviceAdded(device);
         });
