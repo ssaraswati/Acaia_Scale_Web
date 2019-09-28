@@ -215,7 +215,7 @@ var Scale = (function () {
         this.queue = null;
         this.timerStatus = 0;
         this.customCallback = customCallback;
-        console.log('created scale for ' + this.device.address + ' (' + this.device.name + ')');
+        console.log('created scale for ' + this.device.id + ' (' + this.device.name + ')');
         this.connect();
     }
 
@@ -247,10 +247,9 @@ var Scale = (function () {
 	            console.log('characteristic value update, but no message');
 	            return;
             }
-
 	        if (msg.type === 5) {
 	            _this.weight = msg.value;
-                _this.customCallback ? _this.customCallback('weight', msg.value) : console.log('weight', msg.value);
+                _this.customCallback ? _this.customCallback(_this.device.id, 'weight', msg.value) : console.log('weight', msg.value);
 	        } else if (msg.type === 11) {
 
             } else if(msg.type === 8) {
@@ -285,7 +284,7 @@ var Scale = (function () {
                         break;
 
                 }
-                _this.customCallback ? _this.customCallback('action', action) : console.log('action', action);
+                _this.customCallback ? _this.customCallback(_this.device.id, 'action', action) : console.log('action', action);
             } else {
 	            console.log('non-weight response');
 	            console.log(msg);
@@ -317,7 +316,7 @@ var Scale = (function () {
             _this.notificationsReady();
         }, function (err) {
             log('FAILED: ' + err);
-            return null;
+            return null; 
         });
     };
 
@@ -363,7 +362,7 @@ var Scale = (function () {
         console.log('scale ready');
         this.connected = true;
         this.ident();
-        this.customCallback('connected');
+        this.customCallback(this.device, 'connected');
         setInterval(this.heartbeat.bind(this), 5000);
         //setInterval(this.tare.bind(this), 5000);
     };
@@ -469,12 +468,12 @@ var ScaleFinder = (function () {
 
     ScaleFinder.prototype.deviceAdded = function (device) {
 
-        if (device.address in this.devices) {
-            console.log('WARN: device added that is already known ' + device.address);
+        if (device.id in this.devices) {
+            console.log('WARN: device added that is already known ' + device.id);
             return;
         }
         var scale = new Scale(device, this.customCallback);
-        this.devices[device.address] = scale;
+        this.devices[device.id] = scale;
         this.tare = scale.tare.bind(scale);
         this.timer = scale.timer.bind(scale);
         this.scales.push(scale);

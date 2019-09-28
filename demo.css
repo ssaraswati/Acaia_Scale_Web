@@ -130,6 +130,63 @@ button {
     padding: 12px;
 }
 
+#scale-list {
+    padding: 12px;
+    min-width: 200px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.scale-element {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-width: 1px;
+    border-style: solid;
+    border-color: gray;
+    border-radius: 12px;
+    padding: 12px;
+    color: gray;
+    font-family: sans-serif;
+    font-size: 14px;
+    margin-top: 8px;
+}
+
+.status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 12px;
+    background-color: red;
+}
+
+.status-indicator--conected {
+    width: 12px;
+    height: 12px;
+    border-radius: 12px;
+    background-color: green;
+}
+
+.active-scale {
+    box-shadow: 1px 1px 2px black, 0 0 5px gray, 0 0 5px darkgray;
+}
+
+.delete-scale {
+    width: 12px;
+    height: 12px;
+    font-size: 9px;
+    border-width: 1px;
+    border-style: solid;
+    border-color: gray;
+    border-radius: 12px;
+    text-align: center;
+    cursor: pointer;
+}
+
+.delete-scale:hover {
+    border-color: darkgray;
+    color: darkgray;
+}
+
 #connect-button:hover {
     border-color: darkgray;
 }

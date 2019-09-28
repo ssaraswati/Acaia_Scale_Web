@@ -1,17 +1,21 @@
 (function () {
+    // Store the current timer for the scale
     var secondCount = 0;
+    // also the timer but keeps it to hundred of a second
     var centisecondCount = 0;
     var isTimerActive = false;
-    var currentWeight = 0;
-    var lastWeight = 0;
     var timer;
-    var weightData = [];
+    var scales = {}
+    var activeScale = '';
+    var graphData = [];
+    var currentRun = ''
 
-    function callback(type, value) {
+    // callback function passed to the scale library, handles all responses from scale
+    function callback(id, type, value) {
         if (type === 'connected') {
-            displayConnected();
+            displayConnected(id);
         } else if (type === 'weight') {
-            displayWeight(value);
+            displayWeight(id, value);
         } else {
             switch(value) {
                 case 'tare': 
@@ -41,21 +45,51 @@
         }
     }
 
-    function displayConnected() {
-        var connectButton = document.getElementById('connect-button');
-        connectButton.innerText = 'Connected';
+    function displayConnected(scale) {
+        var scaleList = document.getElementById('scale-list');
+        scaleList.innerHTML = '';
+        Object.keys(scales).forEach(function(id) {
+            scaleList.insertAdjacentHTML('beforeend', `
+                <div class="scale-element" id=${id}>
+                    <div class="status-indicator status-indicator--conected"></div>
+                    <div>
+                        <div class="scale-name">${scales[id].name} - ${id.substring(0,5)}</div>
+                        <div class="scale-status">Conected</div>
+                    </div>
+                </div>
+            `);
+        });
+        scaleList.insertAdjacentHTML('beforeend', `
+            <div class="scale-element active-scale" id=${scale.id}>
+                <div class="status-indicator status-indicator--conected"></div>
+                <div>
+                    <div class="scale-name">${scale.name} - ${scale.id.substring(0,5)}</div>
+                    <div class="scale-status">Conected</div>
+                </div>  
+            </div>
+        `);
+        /// <button class="delete-scale">X</button> 
+        scales[scale.id] = {
+            name: scale.name,
+            isConnected: true,
+            isActive: true,
+            weightData: [],
+        };
+        activeScale = scale.id;
     }
 
-    function displayWeight(value) {
-        var weightDisplay = document.getElementById('weight');
-        currentWeight = value;
-        weightDisplay.innerText = value;
+    function displayWeight(id, value) {
+        if (activeScale === id) {
+            var weightDisplay = document.getElementById('weight');
+            scales[id].currentWeight = value;
+            weightDisplay.innerText = value;
+        }; 
         if (isTimerActive) {
-            weightData[weightData.length - 1].push({
+            scales[id].weightData[currentRun].push({
                 time: centisecondCount / 100,
                 weight: value,
             });
-            currentWeight = value;
+            scales[id].currentWeight = value;
         }
     }
 
@@ -63,17 +97,42 @@
         var timerDisplay = document.getElementById('timer');
         var flowRateDisplay = document.getElementById('flowrate');
         timerDisplay.innerText = formatSecondsToTime(secondCount);
+        graphData = [];
+        currentRun = Date.now();
         timer = setInterval(function () {
             secondCount += 1;
             timerDisplay.innerText = formatSecondsToTime(secondCount);
-            flowRateDisplay.innerText =`${(currentWeight - lastWeight).toFixed(1)} g/s`;
-            lastWeight = currentWeight;
+            flowRateDisplay.innerText =`${(scales[activeScale].currentWeight - scales[activeScale].lastWeight).toFixed(1)} g/s`;
+            // -------------
+            graphPoint = {
+                time: secondCount,
+            }
+            Object.keys(scales).forEach(function(el) {
+                graphPoint[`${scales[el].name}_weight`] = scales[el].currentWeight;
+                graphPoint[`${scales[el].name}_flow`] = scales[el].currentWeight - scales[el].lastWeight;
+                scales[el].lastWeight = scales[el].currentWeight
+            })
+            graphData.push(graphPoint);
+
         }, 1000)
         timerData = setInterval(function () {
             centisecondCount += 1;
         }, 10);
-        weightData.push([{ time: 0, weight: currentWeight }]);
-        lastWeight = currentWeight;
+        graphPoint = {
+            time: 0,
+        }
+        console.log('current scales', scales);
+        Object.keys(scales).forEach(function(el) {
+            scales[el].weightData[currentRun] = [];
+            scales[el].weightData[currentRun].push({
+                time: 0,
+                weight: scales[el].currentWeight
+            });
+            graphPoint[`${scales[el].name}_weight`] = scales[el].currentWeight;
+            graphPoint[`${scales[el].name}_flow`] = 0;
+            scales[el].lastWeight = scales[el].currentWeight
+        })
+        graphData.push(graphPoint);
         isTimerActive = true;
         var modeDisplay = document.getElementById('mode-display')
         modeDisplay.innerText = `Mode: Timer Mode`;
@@ -84,14 +143,13 @@
         clearInterval(timer);
         clearInterval(timerData);
         isTimerActive = false;
-        console.log(weightData);
         if (dataList.className !== 'data-list') {
             dataList.className = 'data-list';
         }
         dataList.insertAdjacentHTML('beforeend', `
             <div class="list-element">
-                <p>Dataset ${weightData.length}</p>
-                <button class="list-button" onClick="window.handleDownload(${weightData.length - 1})">Download CSV</button>
+                <p>Dataset ${currentRun}</p>
+                <button class="list-button" onClick="window.handleDownload(${currentRun})">Download CSV</button>
             </div>
         `)
     }
@@ -176,12 +234,27 @@
         document.body.removeChild(link); 
     }
 
-    function handleDownload(index) {
-        exportToCSV(weightData[index], index);
+    function handleDownload(currentRun) {
+        var downloadData = [];
+        var dataSampleLengthArray = []
+        Object.keys(scales).forEach(function (el) {
+            dataSampleLengthArray.push(scales[el].weightData[currentRun].length)
+        })
+        var dataLenght = Math.max(dataSampleLengthArray);
+        for (i=0; i<dataLenght; i++) {
+            var dataPoint = {};
+            Object.keys(scales).forEach(function (el) {
+                dataPoint[`time_${scales[el].name}${el.substring(0,3)}`] = scales[el].weightData[currentRun][i].time;
+                dataPoint[`weight_${scales[el].name}${el.substring(0,3)}`] = scales[el].weightData[currentRun][i].weight;
+            });
+            downloadData.push(dataPoint);
+        };
+        console.log(downloadData, graphData);
+        exportToCSV(downloadData, currentRun);
     }
 
     window.handleDownload = handleDownload;
-    window.onload=function(){
+    window.onload = function() {
         document.getElementById("power").addEventListener("click", function(event){
             sendTimer();
         });
