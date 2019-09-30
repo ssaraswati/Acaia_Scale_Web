@@ -13,8 +13,13 @@
 				<div>
 					<div id="flowrate"></div>
 				</div>
-				<div id="scale-list"></div>
-				<div id="data-list"></div>
+				<div class="selector-buttons">
+					<button id="scales-button" class="scale-button inner-button selected-button" >SCALES</button>
+					<div>/</div>
+					<button id="data-button" class="scale-button inner-button">RESULTS</button>
+				</div>
+				<div id="scale-list" class="show"></div>
+				<div id="data-list" class="hide"></div>
 				<div class="panel">
 					<button id="power" class="scale-button">P</button>
 					<div id="timer" class="scale-display">0.00.</div>
@@ -29,5 +34,6 @@
 				<div id="mode-display">Mode: -</div>
 			</div>
 		</div>
+		<div class="graph"></div>
 	</body>
 </html>

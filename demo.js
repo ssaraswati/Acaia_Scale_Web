@@ -50,7 +50,7 @@
         scaleList.innerHTML = '';
         Object.keys(scales).forEach(function(id) {
             scaleList.insertAdjacentHTML('beforeend', `
-                <div class="scale-element" id=${id}>
+                <div class="scale-element" id=${id} onclick="window.selectScale('${id}')">
                     <div class="status-indicator status-indicator--conected"></div>
                     <div>
                         <div class="scale-name">${scales[id].name} - ${id.substring(0,5)}</div>
@@ -60,7 +60,7 @@
             `);
         });
         scaleList.insertAdjacentHTML('beforeend', `
-            <div class="scale-element active-scale" id=${scale.id}>
+            <div class="scale-element active-scale" id=${scale.id} onclick="window.selectScale('${scale.id}')">
                 <div class="status-indicator status-indicator--conected"></div>
                 <div>
                     <div class="scale-name">${scale.name} - ${scale.id.substring(0,5)}</div>
@@ -109,7 +109,7 @@
             }
             Object.keys(scales).forEach(function(el) {
                 graphPoint[`${scales[el].name}_weight`] = scales[el].currentWeight;
-                graphPoint[`${scales[el].name}_flow`] = scales[el].currentWeight - scales[el].lastWeight;
+                graphPoint[`${scales[el].name}_flow`] = (scales[el].currentWeight - scales[el].lastWeight).toFixed(1);
                 scales[el].lastWeight = scales[el].currentWeight
             })
             graphData.push(graphPoint);
@@ -121,7 +121,6 @@
         graphPoint = {
             time: 0,
         }
-        console.log('current scales', scales);
         Object.keys(scales).forEach(function(el) {
             scales[el].weightData[currentRun] = [];
             scales[el].weightData[currentRun].push({
@@ -139,19 +138,19 @@
     }
 
     function handleStopTimer() {
-        var dataList = document.getElementById('data-list');
-        clearInterval(timer);
-        clearInterval(timerData);
-        isTimerActive = false;
-        if (dataList.className !== 'data-list') {
-            dataList.className = 'data-list';
+        if (timer) {
+            var dataList = document.getElementById('data-list');
+            clearInterval(timer);
+            clearInterval(timerData);
+            isTimerActive = false;
+            showScales();
+            dataList.insertAdjacentHTML('beforeend', `
+                <div class="list-element">
+                    <p>Dataset ${currentRun}</p>
+                    <button class="list-button" onClick="window.handleDownload(${currentRun})">Download CSV</button>
+                </div>
+            `)
         }
-        dataList.insertAdjacentHTML('beforeend', `
-            <div class="list-element">
-                <p>Dataset ${currentRun}</p>
-                <button class="list-button" onClick="window.handleDownload(${currentRun})">Download CSV</button>
-            </div>
-        `)
     }
 
     function handleResetTimer() {
@@ -240,20 +239,61 @@
         Object.keys(scales).forEach(function (el) {
             dataSampleLengthArray.push(scales[el].weightData[currentRun].length)
         })
-        var dataLenght = Math.max(dataSampleLengthArray);
+        var dataLenght = Math.max(...dataSampleLengthArray);
         for (i=0; i<dataLenght; i++) {
             var dataPoint = {};
             Object.keys(scales).forEach(function (el) {
-                dataPoint[`time_${scales[el].name}${el.substring(0,3)}`] = scales[el].weightData[currentRun][i].time;
-                dataPoint[`weight_${scales[el].name}${el.substring(0,3)}`] = scales[el].weightData[currentRun][i].weight;
+                var point = scales[el].weightData[currentRun][i] || {}
+                dataPoint[`time_${scales[el].name}${el.substring(0,3)}`] = point.time === undefined ? '' : point.time;
+                dataPoint[`weight_${scales[el].name}${el.substring(0,3)}`] = point.weight === undefined ? '' : point.weight;
             });
             downloadData.push(dataPoint);
         };
-        console.log(downloadData, graphData);
         exportToCSV(downloadData, currentRun);
     }
 
+    function selectScale(scaleId) {
+        activeScale = scaleId;
+        var scaleList = document.getElementById('scale-list');
+        scaleList.innerHTML = '';
+        Object.keys(scales).forEach(function(id) {
+            scaleList.insertAdjacentHTML('beforeend', `
+                <div class="scale-element ${id === scaleId ? 'active-scale' : ''}" id=${id} onclick="window.selectScale('${id}')">
+                    <div class="status-indicator status-indicator--conected"></div>
+                    <div>
+                        <div class="scale-name">${scales[id].name} - ${id.substring(0,5)}</div>
+                        <div class="scale-status">Conected</div>
+                    </div>
+                </div>
+            `);
+        });
+
+    }
+
+    function showScales() {
+        var scalesButton = document.getElementById('scales-button');
+        var dataButton = document.getElementById('data-button');
+        var scaleList = document.getElementById('scale-list');
+        var dataList = document.getElementById('data-list');
+        dataButton.classList.remove('selected-button');
+        scalesButton.classList.add('selected-button');
+        scaleList.classList.remove('hide');
+        dataList.classList.add('hide');
+    }
+
+    function showData() {
+        var scalesButton = document.getElementById('scales-button');
+        var dataButton = document.getElementById('data-button');
+        var scaleList = document.getElementById('scale-list');
+        var dataList = document.getElementById('data-list');
+        scalesButton.classList.remove('selected-button');
+        dataButton.classList.add('selected-button');
+        scaleList.classList.add('hide');
+        dataList.classList.remove('hide');
+    }
+
     window.handleDownload = handleDownload;
+    window.selectScale = selectScale;
     window.onload = function() {
         document.getElementById("power").addEventListener("click", function(event){
             sendTimer();
@@ -265,6 +305,14 @@
     
         document.getElementById("connect-button").addEventListener("click", function(event){
             discover();
+        });
+
+        document.getElementById('scales-button').addEventListener('click', function(event) {
+            showScales();
+        });
+
+        document.getElementById('data-button').addEventListener('click', function(event) {
+            showData();
         });
     }
 
