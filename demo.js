@@ -7,8 +7,23 @@
     var timer;
     var scales = {}
     var activeScale = '';
-    var graphData = [];
+    var graphData = {
+        time: [],
+    };
+    var graphDataExport = [];
     var currentRun = ''
+    var chart;
+
+    var colorArray = ['#FF6633', '#66E64D', '#FF33FF', '#FF6633', '#00B3E6', 
+		  '#E6B333', '#3366E6', '#999966', '#99FF99', '#B34D4D',
+		  '#80B300', '#809900', '#E6B3B3', '#6680B3', '#66991A', 
+		  '#FF99E6', '#CCFF1A', '#FF1A66', '#E6331A', '#33FFCC',
+		  '#66994D', '#B366CC', '#4D8000', '#B33300', '#CC80CC', 
+		  '#66664D', '#991AFF', '#E666FF', '#4DB3FF', '#1AB399',
+		  '#E666B3', '#33991A', '#CC9999', '#B3B31A', '#00E680', 
+		  '#4D8066', '#809980', '#E6FF80', '#1AFF33', '#999933',
+		  '#FF3380', '#CCCC00', '#66E64D', '#4D80CC', '#9900B3', 
+		  '#E64D66', '#4DB380', '#FF4D4D', '#99E6E6', '#6666FF'];
 
     // callback function passed to the scale library, handles all responses from scale
     function callback(id, type, value) {
@@ -107,12 +122,16 @@
             graphPoint = {
                 time: secondCount,
             }
+            graphData.time.push(secondCount),
             Object.keys(scales).forEach(function(el) {
                 graphPoint[`${scales[el].name}_weight`] = scales[el].currentWeight;
                 graphPoint[`${scales[el].name}_flow`] = (scales[el].currentWeight - scales[el].lastWeight).toFixed(1);
+                graphData[`${scales[el].name}_weight`].push(scales[el].currentWeight);
+                graphData[`${scales[el].name}_flow`].push((scales[el].currentWeight - scales[el].lastWeight).toFixed(1));
                 scales[el].lastWeight = scales[el].currentWeight
             })
-            graphData.push(graphPoint);
+            graphDataExport.push(graphPoint);
+            updateGraph(graphData);
 
         }, 1000)
         timerData = setInterval(function () {
@@ -121,6 +140,7 @@
         graphPoint = {
             time: 0,
         }
+        graphData.time = [0];
         Object.keys(scales).forEach(function(el) {
             scales[el].weightData[currentRun] = [];
             scales[el].weightData[currentRun].push({
@@ -129,12 +149,14 @@
             });
             graphPoint[`${scales[el].name}_weight`] = scales[el].currentWeight;
             graphPoint[`${scales[el].name}_flow`] = 0;
+            graphData[`${scales[el].name}_weight`] = [scales[el].currentWeight];
+            graphData[`${scales[el].name}_flow`] = [(scales[el].currentWeight - scales[el].lastWeight).toFixed(1)];
             scales[el].lastWeight = scales[el].currentWeight
         })
-        graphData.push(graphPoint);
         isTimerActive = true;
         var modeDisplay = document.getElementById('mode-display')
         modeDisplay.innerText = `Mode: Timer Mode`;
+        initGraph();
     }
 
     function handleStopTimer() {
@@ -143,7 +165,7 @@
             clearInterval(timer);
             clearInterval(timerData);
             isTimerActive = false;
-            showScales();
+            showData();
             dataList.insertAdjacentHTML('beforeend', `
                 <div class="list-element">
                     <p>Dataset ${currentRun}</p>
@@ -270,6 +292,89 @@
 
     }
 
+    function initGraph() {
+        var graphDisplay = document.getElementById('graph-display');
+        graphDisplay.setAttribute('style', 'display: flex')
+        var ctx = document.getElementById('brew-chart').getContext('2d');
+        var labels = graphData.time
+        var datasets = [];
+        Object.keys(graphData).forEach(function(data, index){
+            if (data === 'time') return;
+            datasets.push({
+                label: data,
+                backgroundColor: colorArray[index],
+                borderColor: colorArray[index],
+                borderDash: data.includes('flow') ? [ 5, 5 ] : undefined,
+                steppedLine: data.includes('flow'),
+                fill: false,
+                data: graphData[data],
+                yAxisID: data.includes('weight') ? 'weight':'flow',
+            });
+        });
+        chart = new Chart(ctx, {
+            // The type of chart we want to create
+            type: 'line',
+
+            // The data for our dataset
+            data: {
+                labels,
+                datasets,
+            },
+
+            // Configuration options go here
+            options: {
+                scales: {
+                    yAxes: [{
+                        type: 'linear',
+                        display: 'true',
+                        position: 'left',
+                        id: 'weight',
+                        scaleLabel: {
+                            labelString: 'Total weight (g)',
+                            display: true,
+                        },
+                    },{
+                        type: 'linear',
+                        display: 'true',
+                        position: 'right',
+                        id: 'flow',
+                        scaleLabel: {
+                            labelString: 'Flow (g/s)',
+                            display: true,
+                        },
+                        ticks: {
+                            min: 0,
+                        }
+                    }],
+                    xAxes: [{
+                        autoSkip: true,
+                        scaleLabel: {
+                            labelString: 'Time (s)',
+                            display: true,
+                        },
+                    }]
+                }
+            }
+        });
+
+    }
+
+    function updateGraph(graphData) {
+        /*
+        chart.data.labels.push(graphData.time[graphData.time.length - 1]);
+        chart.data.datasets.forEach(function(dataset) {
+            dataset.data.push(graphData[dataset.label][graphData[dataset.label].length -1]);
+        });
+        */
+        chart.update();
+    }
+
+    function closeGraph() {
+        var graphDisplay = document.getElementById('graph-display');
+        graphDisplay.setAttribute('style', 'display: none')
+        chart.destroy()
+    }
+
     function showScales() {
         var scalesButton = document.getElementById('scales-button');
         var dataButton = document.getElementById('data-button');
@@ -314,6 +419,10 @@
         document.getElementById('data-button').addEventListener('click', function(event) {
             showData();
         });
+
+        document.getElementById('close-button').addEventListener('click', function(event) {
+            closeGraph();
+        })
     }
 
 })();

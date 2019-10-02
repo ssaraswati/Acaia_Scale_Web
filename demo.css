@@ -12,6 +12,31 @@ button {
     all: unset;
 }
 
+.graph-background {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0,0,0,0.4);
+}
+
+.graph-container {
+    background-color: white;
+    width: 96%;
+    padding: 16px  8px 16px 8px;
+}
+
+.close-button {
+    display: flex;
+    justify-content: flex-end;
+    font-size: 22px;
+    margin-right: 18px;
+}
+
 .background {
     background-color: white;
     width: 100%;

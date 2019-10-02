@@ -29,11 +29,19 @@
 			</div>
 			<div class="footer">
 				<button id="connect-button" class='scale-button'>
-					<span class="button-text">Add Scale</span>
+					<span class="button-text">ADD SCALE</span>
 				</button>
 				<div id="mode-display">Mode: -</div>
 			</div>
 		</div>
-		<div class="graph"></div>
+		<div class="graph-background" id="graph-display">
+			<div class="graph-container">
+				<div class="close-button">
+					<button id="close-button" class="scale-button">CLOSE</button>
+				</div>
+				<canvas id="brew-chart"></canvas>
+			</div>
+		</div>
+		<script src="Chart.min.js"></script>
 	</body>
 </html>
