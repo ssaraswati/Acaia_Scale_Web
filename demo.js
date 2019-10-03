@@ -158,7 +158,6 @@
         if (timer) {
             var dataList = document.getElementById('data-list');
             clearInterval(timer);
-            clearInterval(timerData);
             isTimerActive = false;
             showData();
             dataList.insertAdjacentHTML('beforeend', `
