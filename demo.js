@@ -113,7 +113,7 @@
         graphData = [];
         currentRun = Date.now();
         timer = setInterval(function () {
-            secondCount = Math.floor((Data.now() - currentRun) / 1000);
+            secondCount = Math.floor((Date.now() - currentRun) / 1000);
             timerDisplay.innerText = formatSecondsToTime(secondCount);
             flowRateDisplay.innerText =`${(scales[activeScale].currentWeight - scales[activeScale].lastWeight).toFixed(1)} g/s`;
             // -------------
