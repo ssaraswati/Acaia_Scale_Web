@@ -1,8 +1,6 @@
 (function () {
     // Store the current timer for the scale
     var secondCount = 0;
-    // also the timer but keeps it to hundred of a second
-    var centisecondCount = 0;
     var isTimerActive = false;
     var timer;
     var scales = {}
@@ -101,7 +99,7 @@
         }; 
         if (isTimerActive) {
             scales[id].weightData[currentRun].push({
-                time: centisecondCount / 100,
+                time: (Date.now() - currentRun) / 100,
                 weight: value,
             });
             scales[id].currentWeight = value;
@@ -115,7 +113,7 @@
         graphData = [];
         currentRun = Date.now();
         timer = setInterval(function () {
-            secondCount += 1;
+            secondCount = Math.floor((Data.now() - currentRun) / 1000);
             timerDisplay.innerText = formatSecondsToTime(secondCount);
             flowRateDisplay.innerText =`${(scales[activeScale].currentWeight - scales[activeScale].lastWeight).toFixed(1)} g/s`;
             // -------------
@@ -134,9 +132,6 @@
             updateGraph(graphData);
 
         }, 1000)
-        timerData = setInterval(function () {
-            centisecondCount += 1;
-        }, 10);
         graphPoint = {
             time: 0,
         }
@@ -178,7 +173,6 @@
     function handleResetTimer() {
         var timerDisplay = document.getElementById('timer');
         secondCount = 0;
-        centisecondCount = 0;
         timerDisplay.innerText = formatSecondsToTime(secondCount);
     }
 
@@ -344,6 +338,7 @@
                         },
                         ticks: {
                             min: 0,
+                            max: 16,
                         }
                     }],
                     xAxes: [{
