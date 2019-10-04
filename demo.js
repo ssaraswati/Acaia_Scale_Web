@@ -99,7 +99,7 @@
         }; 
         if (isTimerActive) {
             scales[id].weightData[currentRun].push({
-                time: (Date.now() - currentRun) / 100,
+                time: (Date.now() - currentRun) / 1000,
                 weight: value,
             });
             scales[id].currentWeight = value;
