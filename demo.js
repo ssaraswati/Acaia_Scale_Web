@@ -30,7 +30,8 @@
         } else if (type === 'weight') {
             displayWeight(id, value);
         } else {
-            switch(value) {
+            let command = value ?? type;
+            switch(command) {
                 case 'tare': 
                     console.log('it tare');
                     break;
@@ -53,7 +54,7 @@
                     handleResetTimer();
                     break;
                 default:
-                    console.log('not know msg', value);
+                    console.log('not know msg', value, type);
             }
         }
     }
@@ -360,13 +361,17 @@
             dataset.data.push(graphData[dataset.label][graphData[dataset.label].length -1]);
         });
         */
-        chart.update();
+        var graphDisplay = document.getElementById('graph-display');
+
+        if (!!graphDisplay && graphDisplay.getAttribute('style') !== 'display: none'){
+            chart.update();
+        }
     }
 
     function closeGraph() {
         var graphDisplay = document.getElementById('graph-display');
-        graphDisplay.setAttribute('style', 'display: none')
-        chart.destroy()
+        graphDisplay.setAttribute('style', 'display: none');
+        chart.destroy();
     }
 
     function showScales() {

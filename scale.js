@@ -1,6 +1,11 @@
 // based on https://github.com/bpowers/btscale
 let SCALE_SERVICE_UUID = '00001820-0000-1000-8000-00805f9b34fb';
 let SCALE_CHARACTERISTIC_UUID = '00002a80-0000-1000-8000-00805f9b34fb';
+
+let SCALE_SERVICE_UUID_V2 = '49535343-fe7d-4ae5-8fa9-9fafd205e455';
+let SCALE_CHARACTERISTIC_UUID_V2_TX = '49535343-1e4d-4bd9-ba61-23c647249616';
+let SCALE_CHARACTERISTIC_UUID_V2_RX = '49535343-8841-43f4-a8d4-ecbe34729bb3';
+
 let HEADER1 = 0xef;
 let HEADER2 = 0xdd;
 
@@ -97,14 +102,14 @@ function encode(msgType, payload) {
     var cksum2 = 0;
 
     for (var i = 0; i < payload.length; i++) {
-    	var val = payload[i] & 0xff;
-    	bytes[3+i] = val;
-    	if (i % 2 == 0) {
-    		cksum1 += val;
-    	}
-    	else {
-    		cksum2 += val;
-    	}
+        var val = payload[i] & 0xff;
+        bytes[3 + i] = val;
+        if (i % 2 == 0) {
+            cksum1 += val;
+        }
+        else {
+            cksum2 += val;
+        }
     }
 
     bytes[payload.length + 3] = (cksum1 & 0xFF);
@@ -116,23 +121,23 @@ function encode(msgType, payload) {
 
 function decode(bytes) {
 
-	if (bytes[0] !== HEADER1 && bytes[1] !== HEADER2) {
-		return;
-	}
+    if (bytes[0] !== HEADER1 && bytes[1] !== HEADER2) {
+        return;
+    }
 
-	var cmd = bytes[2];
+    var cmd = bytes[2];
 
     // only supports event notification messages
     if (cmd != 12) {
 
-		//non event notification message
-		//scale.js:127 Uint8Array(14) [239, 221, 8, 9, 83, 2, 2, 1, 0, 1, 1, 1, 14, 86]
-		// 8 -> status
-		// 9 -> length
-		// 83 -> battery (83%)
-	    console.log('non event notification message');
-	    console.log(bytes);
-    	return;
+        //non event notification message
+        //scale.js:127 Uint8Array(14) [239, 221, 8, 9, 83, 2, 2, 1, 0, 1, 1, 1, 14, 86]
+        // 8 -> status
+        // 9 -> length
+        // 83 -> battery (83%)
+        console.log('non event notification message');
+        console.log(bytes);
+        return;
     }
 
     // TODO: verify length + checksum
@@ -151,7 +156,7 @@ function encodeEventData(payload) {
     bytes[0] = payload.length + 1;
 
     for (var i = 0; i < payload.length; i++) {
-    	bytes[i+1] = payload[i] & 0xff;
+        bytes[i + 1] = payload[i] & 0xff;
     }
 
     return encode(12, bytes);
@@ -161,14 +166,14 @@ function encodeEventData(payload) {
 function encodeNotificationRequest() {
 
     var payload = [
-    	0,  // weight
-    	1,  // weight argument
-    	1,  // battery
-    	2,  // battery argument
-    	2,  // timer
-    	5,  // timer argument
-    	3,  // key
-    	4   // setting
+        0,  // weight
+        1,  // weight argument
+        1,  // battery
+        2,  // battery argument
+        2,  // timer
+        5,  // timer argument
+        3,  // key
+        4   // setting
     ];
 
     return encodeEventData(payload);
@@ -177,14 +182,14 @@ function encodeNotificationRequest() {
 
 function encodeId() {
 
-    var payload = [0x2d,0x2d,0x2d,0x2d,0x2d,0x2d,0x2d,0x2d,0x2d,0x2d,0x2d,0x2d,0x2d,0x2d,0x2d];
+    var payload = [0x2d, 0x2d, 0x2d, 0x2d, 0x2d, 0x2d, 0x2d, 0x2d, 0x2d, 0x2d, 0x2d, 0x2d, 0x2d, 0x2d, 0x2d];
     return encode(11, payload);
 }
 
 
 function encodeHeartbeat() {
 
-    var payload = [2,0];
+    var payload = [2, 0];
     return encode(0, payload);
 }
 
@@ -197,7 +202,7 @@ function encodeTare() {
 }
 
 function encodeTimer(value) {
-    var payload = [0,value];
+    var payload = [0, value];
     return encode(13, payload);
 }
 
@@ -208,7 +213,8 @@ var Scale = (function () {
 
         this.connected = false;
         this.service = null;
-        this.characteristic = null;
+        this.characteristicReceive = null;
+        this.characteristicSend = null;
         this.weight = null;
         this.device = device;
         this.name = this.device.name;
@@ -228,31 +234,33 @@ var Scale = (function () {
 
         var log = console.log.bind(console);
 
-	    _this.queue = new Queue(function(payload) {
+        _this.queue = new Queue(function (payload) {
 
-	    	_this.addBuffer(payload);
-	    	// the packet header is split from the content
-	    	// need to read in two times and recompose the message
-	    	if (_this.packet.byteLength <= 3) {
-	    		return;
-	    	}
-
-	    	// TODO: read length and make sure we have enough data
-	        // before decoding message
-	        	
-			var msg = decode(_this.packet);
-			_this.packet = null;
-
-	        if (!msg) {
-	            console.log('characteristic value update, but no message');
-	            return;
+            _this.addBuffer(payload);
+            // the packet header is split from the content
+            // need to read in two times and recompose the message
+            if (_this.packet.byteLength <= 3) {
+                return;
             }
-	        if (msg.type === 5) {
-	            _this.weight = msg.value;
-                _this.customCallback ? _this.customCallback(_this.device.id, 'weight', msg.value) : console.log('weight', msg.value);
-	        } else if (msg.type === 11) {
 
-            } else if(msg.type === 8) {
+            // TODO: read length and make sure we have enough data
+            // before decoding message
+
+            var msg = decode(_this.packet);
+            _this.packet = null;
+
+            if (!msg) {
+                console.log('characteristic value update, but no message');
+                return;
+            }
+            
+            if (msg.type === 5) {
+                console.log('Received weight:', msg.value)
+                _this.weight = msg.value;
+                _this.customCallback ? _this.customCallback(_this.device.id, 'weight', msg.value) : console.log('weight', msg.value);
+            } else if (msg.type === 11) {
+            } else if (msg.type === 8) {
+                console.log('Received msg:', msg)
                 var action;
                 switch (msg.value) {
                     case 0:
@@ -261,7 +269,7 @@ var Scale = (function () {
                     case 4:
                         action = 'timer_mode';
                         break;
-                    case 3: 
+                    case 3:
                         action = 'brew_mode';
                         break;
                     case 2:
@@ -286,67 +294,82 @@ var Scale = (function () {
                 }
                 _this.customCallback ? _this.customCallback(_this.device.id, 'action', action) : console.log('action', action);
             } else {
-	            console.log('non-weight response');
-	            console.log(msg);
-	        } 
-	    });
+                console.log('non-weight response');
+                console.log(msg);
+            }
+        });
 
         this.device.gatt.connect()
             .then(function (server) {
-            return _this.device.gatt.getPrimaryService(SCALE_SERVICE_UUID);
-        }, function (err) {
-            console.log('error connecting - ' + err);
-            return null;
-        }).then(function (service) {
-            _this.service = service;
-            console.log('primary services ');
-            return service.getCharacteristic(SCALE_CHARACTERISTIC_UUID);
-        }, function (err) {
-            console.log('primary services ERR - ' + err);
-            return null;
-        }).then(function (characteristic) {
-            log('Starting notifications...');
-            _this.characteristic = characteristic;
-            return characteristic.startNotifications();
-        }, function (err) {
-            console.log('err getting characteristic');
-            return null;
-        }).then(function (characteristic) {
-            characteristic.addEventListener('characteristicvaluechanged', _this.characteristicValueChanged.bind(_this));
-            _this.notificationsReady();
-        }, function (err) {
-            log('FAILED: ' + err);
-            return null; 
-        });
+                console.log('Connected to scale server', server)
+                return _this.device.gatt.getPrimaryServices();
+            }, function (err) {
+                console.log('error connecting - ' + err);
+                return null;
+            })
+            .then(function (services) {
+                console.log('primary services ', services);
+                _this.service = services.find(e => e.uuid === SCALE_SERVICE_UUID_V2 || e.uuid == SCALE_SERVICE_UUID);
+                console.log('selected primary service ', _this.service);
+
+                return _this.service.getCharacteristic(_this.service.uuid === SCALE_SERVICE_UUID_V2 ? SCALE_CHARACTERISTIC_UUID_V2_RX : SCALE_CHARACTERISTIC_UUID);
+            }, function (err) {
+                console.log('primary services ERR - ' + err);
+                return null;
+            })
+            .then(function (characteristicSend) {
+                _this.characteristicSend = characteristicSend;
+                console.log('Setting send characteristic ', characteristicSend);
+                return _this.service.getCharacteristic(_this.service.uuid === SCALE_SERVICE_UUID_V2 ? SCALE_CHARACTERISTIC_UUID_V2_TX : SCALE_CHARACTERISTIC_UUID);
+            }, function (err) {
+                console.log('err getting send characteristic', err);
+                return null;
+            })
+            .then(function (characteristicReceive) {
+                log('Starting receive characteristic...', characteristicReceive);
+                _this.characteristicReceive = characteristicReceive;
+                return characteristicReceive.startNotifications();
+            }, function (err) {
+                console.log('err getting receive characteristic', err);
+                return null;
+            })
+            .then(function (characteristicReceive) {
+                log('Adding event listener');
+                characteristicReceive.addEventListener('characteristicvaluechanged', _this.characteristicValueChanged.bind(_this));
+                _this.notificationsReady();
+            }, function (err) {
+                log('FAILED: ' + err);
+                return null;
+            });
     };
 
 
-	Scale.prototype.addBuffer = function(buffer2) {
+    Scale.prototype.addBuffer = function (buffer2) {
 
-		var tmp = new Uint8Array(buffer2);
-		var len = 0;
+        var tmp = new Uint8Array(buffer2);
+        var len = 0;
 
-		if (this.packet != null) {
-			len = this.packet.length;
-		}
+        if (this.packet != null) {
+            len = this.packet.length;
+        }
 
-		var result = new Uint8Array(len + buffer2.byteLength);
+        var result = new Uint8Array(len + buffer2.byteLength);
 
-		for (var i = 0; i < len; i++) {
-			result[i] = this.packet[i];
-		}
+        for (var i = 0; i < len; i++) {
+            result[i] = this.packet[i];
+        }
 
-		for (var i = 0; i < buffer2.byteLength; i++) {
-			result[i+len] = tmp[i];
-		}
+        for (var i = 0; i < buffer2.byteLength; i++) {
+            result[i + len] = tmp[i];
+        }
 
-	  	this.packet = result;
-	}
+        this.packet = result;
+    }
 
 
     Scale.prototype.characteristicValueChanged = function (event) {
 
-    	this.queue.add(event.target.value.buffer);
+        this.queue.add(event.target.value.buffer);
     };
 
     Scale.prototype.disconnect = function () {
@@ -364,7 +387,6 @@ var Scale = (function () {
         this.ident();
         this.customCallback(this.device, 'connected');
         setInterval(this.heartbeat.bind(this), 5000);
-        //setInterval(this.tare.bind(this), 5000);
     };
 
     Scale.prototype.ident = function () {
@@ -374,17 +396,17 @@ var Scale = (function () {
         }
 
         var _this = this;
-        this.characteristic.writeValue(encodeId())
-        .then(function () {
-        }, function (err) {
-            console.log('write ident failed: ' + err);
-        }).then(function() {
-            _this.characteristic.writeValue(encodeNotificationRequest())
+        this.characteristicSend.writeValue(encodeId())
             .then(function () {
             }, function (err) {
-                console.log('write failed: ' + err);
+                console.log('write ident failed: ' + err);
+            }).then(function () {
+                _this.characteristicSend.writeValue(encodeNotificationRequest())
+                    .then(function () {
+                    }, function (err) {
+                        console.log('write failed: ' + err);
+                    });
             });
-        });
 
         return true;
     };
@@ -395,11 +417,11 @@ var Scale = (function () {
             return false;
         }
 
-        this.characteristic.writeValue(encodeHeartbeat())
-        .then(function () {
-        }, function (err) {
-            console.log('write heartbeat failed: ' + err);
-        });
+        this.characteristicSend.writeValue(encodeHeartbeat())
+            .then(function () {
+            }, function (err) {
+                console.log('write heartbeat failed: ' + err);
+            });
 
         return true;
     };
@@ -408,11 +430,11 @@ var Scale = (function () {
         if (!this.connected) {
             return false;
         }
-        this.characteristic.writeValue(encodeTare())
-        .then(function () {
-        }, function (err) {
-            console.log('write tare failed: ' + err);
-        });
+        this.characteristicSend.writeValue(encodeTare())
+            .then(function () {
+            }, function (err) {
+                console.log('write tare failed: ' + err);
+            });
 
         return true;
     };
@@ -422,30 +444,31 @@ var Scale = (function () {
         if (!this.connected) {
             return false;
         }
-        this.characteristic.writeValue(encodeTimer(_this.timerStatus))
-        .then(function () {
-            var value;
-            switch (_this.timerStatus) {
-                case 0:
-                    value = 'start_timer';
-                    _this.timerStatus = 2;
-                    break;
-                case 1:
-                    value = 'reset_timer';
-                    _this.timerStatus = 0;
-                    break;
-                case 2:
-                    value = 'stop_timer';
-                    _this.timerStatus = 1;
-                    break;
-                default:
-                    value = 'reset_timer';
-                    _this.timerStatus = 0;
-            }
-            _this.customCallback('action', value);
-        }, function (err) {
-            console.log('write timer failed: ' + err);
-        });
+        this.characteristicSend.writeValue(encodeTimer(_this.timerStatus))
+            .then(function () {
+                var value;
+                console.log('Timer Status', _this.timerStatus)
+                switch (_this.timerStatus) {
+                    case 0:
+                        value = 'start_timer';
+                        _this.timerStatus = 2;
+                        break;
+                    case 1:
+                        value = 'reset_timer';
+                        _this.timerStatus = 0;
+                        break;
+                    case 2:
+                        value = 'stop_timer';
+                        _this.timerStatus = 1;
+                        break;
+                    default:
+                        value = 'reset_timer';
+                        _this.timerStatus = 0;
+                }
+                _this.customCallback('action', value);
+            }, function (err) {
+                console.log('write timer failed: ' + err);
+            });
 
         return true;
     };
@@ -485,11 +508,22 @@ var ScaleFinder = (function () {
         if (this.failed) {
             return;
         }
-
-        bluetooth.requestDevice( { filters: [{services: [SCALE_SERVICE_UUID]}] })
-        .then(function (device) {
-            _this.deviceAdded(device);
-        });
+        bluetooth.requestDevice({
+            filters: [
+                {
+                    services: [SCALE_SERVICE_UUID]
+                },
+                {
+                    manufacturerData: [{ companyIdentifier: 0x4242 }]
+                }],
+            optionalServices: [
+                SCALE_SERVICE_UUID, 
+                SCALE_SERVICE_UUID_V2]
+        })
+            .then(function (device) {
+                console.log('Selected Device', device)
+                _this.deviceAdded(device);
+            });
     };
 
     ScaleFinder.prototype.stopDiscovery = function () {
